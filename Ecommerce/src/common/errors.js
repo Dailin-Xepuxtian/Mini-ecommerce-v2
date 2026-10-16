@@ -1,0 +1,11 @@
+/** Equivale a HttpException del PHP (con lista opcional de errores de validación). */
+class HttpError extends Error {
+  constructor(status, code, message, details = null) {
+    super(message);
+    this.status = status;
+    this.code = code;
+    this.details = details;
+  }
+}
+
+module.exports = { HttpError };
