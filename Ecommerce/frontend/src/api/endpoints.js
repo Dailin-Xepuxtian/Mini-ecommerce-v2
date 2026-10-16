@@ -1,0 +1,40 @@
+import { api } from './axios';
+
+export const authApi = {
+  login: (d) => api.post('/auth/login', d).then((r) => r.data),
+  register: (d) => api.post('/auth/register', d).then((r) => r.data),
+  logout: (refreshToken) => api.post('/auth/logout', { refreshToken }),
+};
+
+export const productosApi = {
+  listar: (params) => api.get('/productos', { params }).then((r) => r.data),
+  categorias: () => api.get('/categorias').then((r) => r.data),
+};
+
+export const pedidosApi = {
+  // body: { items: [{ id_producto, cantidad }], observaciones }
+  crear: (d) => api.post('/pedidos', d).then((r) => r.data),
+  // params: { estado, pagina, limite }
+  listar: (params) => api.get('/pedidos', { params }).then((r) => r.data),
+  obtener: (id) => api.get(`/pedidos/${id}`).then((r) => r.data),
+  actualizar: (id, d) => api.put(`/pedidos/${id}`, d).then((r) => r.data),
+  cambiarEstado: (id, estado) => api.patch(`/pedidos/${id}/estado`, { estado }).then((r) => r.data),
+  eliminar: (id) => api.delete(`/pedidos/${id}`),
+  trabajos: (id) => api.get(`/pedidos/${id}/trabajos`).then((r) => r.data),
+  reenviar: (id) => api.post(`/pedidos/${id}/reenviar`).then((r) => r.data),
+  descargarPdf: async (id) => {
+    const res = await api.get(`/pedidos/${id}/pdf`, { responseType: 'blob' });
+    const url = URL.createObjectURL(res.data);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pedido-${id}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+};
+
+export const jobsApi = {
+  obtener: (cola, id) => api.get(`/jobs/${cola}/${id}`).then((r) => r.data),
+};
+
+export const ESTADOS_PEDIDO = ['pendiente', 'confirmado', 'enviado', 'entregado', 'cancelado'];
