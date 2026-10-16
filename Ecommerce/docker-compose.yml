@@ -1,0 +1,112 @@
+# Sistema de órdenes de compra - Giganet, S.A.
+# Levantar todo:   docker compose up -d --build
+# Ver logs:        docker compose logs -f api worker
+# Reiniciar la BD: docker compose down -v   (borra los volúmenes y vuelve a cargar data/*.sql)
+name: giganet
+
+# Configuración común de la API y el worker (misma imagen, distinto comando)
+x-app: &app
+  build: .
+  image: giganet-api:latest
+  restart: unless-stopped
+  env_file: .env
+  environment:
+    # Dentro de Docker los servicios se encuentran por nombre; esto pisa lo que diga el .env
+    PORT: "3000"
+    DB_HOST: mysql
+    DB_PORT: "3306"
+    REDIS_HOST: redis
+    REDIS_PORT: "6379"
+    SMTP_HOST: mailpit
+    SMTP_PORT: "1025"
+    STORAGE_DIR: /app/storage
+  volumes:
+    - ordenes_pdf:/app/storage # api y worker comparten los PDF generados
+
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Define DB_ROOT_PASSWORD en .env}
+      MYSQL_DATABASE: ${DB_NAME:-giganet_db}
+      MYSQL_USER: ${DB_USER:?Define DB_USER en .env (no puede ser root)}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD en .env}
+      TZ: America/Guatemala
+    ports:
+      - "3307:3306" # para conectar con Workbench/DBeaver sin chocar con un MySQL local en el 3306
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # Se ejecutan en orden, SOLO la primera vez (cuando el volumen está vacío)
+      - ./data/bd_giganet.sql:/docker-entrypoint-initdb.d/01_bd_giganet.sql:ro
+      - ./data/migracion_api.sql:/docker-entrypoint-initdb.d/02_migracion_api.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # appendonly: la cola sobrevive a reinicios; noeviction: Redis nunca descarta trabajos por falta de memoria
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mailpit:
+    # Servidor SMTP de pruebas: captura los correos y los muestra en http://localhost:8025
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
+
+  api:
+    <<: *app
+    command: ["node", "src/app.js"]
+    ports:
+      - "${API_PORT:-3000}:3000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  worker:
+    <<: *app
+    command: ["node", "src/worker.js"]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  # --- Frontend (React): se agrega cuando lo construyamos ---
+  # frontend:
+  #   build: ./frontend
+  #   ports:
+  #     - "5173:80"
+  #   depends_on:
+  #     - api
+
+volumes:
+  mysql_data:
+  redis_data:
+  ordenes_pdf:
