@@ -76,7 +76,7 @@ export default function Carrito() {
         <div className="flex justify-between text-lg font-bold">
           <span>Total</span><span>{money(total)}</span>
         </div>
-        <p className="text-xs text-gray-500">El total final lo calcula el servidor con los precios vigentes.</p>
+        <p className="text-xs text-gray-500">El total final se calcula con los precios vigentes.</p>
         <button
           onClick={() => crear.mutate()} disabled={crear.isPending}
           className="w-full rounded-lg bg-indigo-600 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
