@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Sora", "DM Sans", sans-serif;
+
+ 
+  --color-indigo-50: #f1efff;
+  --color-indigo-100: #e4e0ff;
+  --color-indigo-200: #cbc3fb;
+  --color-indigo-300: #a89bf5;
+  --color-indigo-400: #7f6aea;
+  --color-indigo-500: #5b44dc;
+  --color-indigo-600: #3f26c4;
+  --color-indigo-700: #2f1aa8;
+  --color-indigo-800: #210588;
+  --color-indigo-900: #160479;
+  --color-indigo-950: #0b036f;
+
+  --color-night: #0b036f;
+  --color-action: #83b735; /* verde del botón "Agregar" */
+  --color-action-dark: #6c9a26;
+}
+
+body {
+  background: #f5f5fb;
+  color: #14123a;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { font-family: var(--font-display); }
+
+.bg-banner {
+  background:
+    radial-gradient(70% 140% at 0% 100%, rgb(168 32 150 / 0.5), transparent 60%),
+    linear-gradient(110deg, #0b036f 0%, #160479 45%, #2f0380 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
